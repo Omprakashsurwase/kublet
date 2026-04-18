@@ -1,26 +1,28 @@
 name: Install Kubelet on Ubuntu
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       kubernetes_version:
-        description: 'Kubernetes version to install'
+        description: "Kubernetes version to install"
         required: false
-        default: 'v1.28.0'
+        default: "v1.28"
 
 jobs:
   install-kubelet:
     runs-on: ubuntu-22.04
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Update system packages
         run: |
-          sudo apt-get update
-          sudo apt-get upgrade -y
-      
+          sudo apt-get update -y
+
       - name: Install required dependencies
         run: |
           sudo apt-get install -y \
@@ -29,37 +31,36 @@ jobs:
             ca-certificates \
             gnupg \
             lsb-release
-      
+
       - name: Add Kubernetes GPG key
         run: |
           sudo mkdir -p /etc/apt/keyrings
-          curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-      
+          curl -fsSL https://pkgs.k8s.io/core:/stable:/${{ github.event.inputs.kubernetes_version }}/deb/Release.key \
+          | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
       - name: Add Kubernetes repository
         run: |
-          echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-      
+          echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] \
+          https://pkgs.k8s.io/core:/stable:/${{ github.event.inputs.kubernetes_version }}/deb/ /" \
+          | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
       - name: Update package list
         run: |
-          sudo apt-get update
-      
-      - name: Install kubelet, kubeadm, and kubectl
+          sudo apt-get update -y
+
+      - name: Install kubelet, kubeadm, kubectl
         run: |
           sudo apt-get install -y kubelet kubeadm kubectl
           sudo apt-mark hold kubelet kubeadm kubectl
-      
-      - name: Enable kubelet service
-        run: |
-          sudo systemctl daemon-reload
-          sudo systemctl enable kubelet
-          sudo systemctl start kubelet
-      
+
       - name: Verify installation
         run: |
           kubelet --version
           kubeadm version
           kubectl version --client
-      
-      - name: Check kubelet status
+
+      # ❌ DO NOT use systemctl in GitHub Actions
+      - name: Note about kubelet service
         run: |
-          sudo systemctl status kubelet
+          echo "⚠️ systemctl not supported in GitHub runner"
+          echo "Use EC2 or VM for running kubelet service"
