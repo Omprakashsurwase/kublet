@@ -3,7 +3,7 @@ name: Install Kubelet on Ubuntu
 on:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
     inputs:
       kubernetes_version:
